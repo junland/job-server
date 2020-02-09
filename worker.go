@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -39,6 +40,11 @@ func (w *Worker) Start() {
 
 			select {
 			case work := <-w.Work:
+				if _, err := os.Stat(work.WorkDir); os.IsNotExist(err) {
+					fmt.Println("Workspace directory does not exist. Creating...")
+					os.Mkdir(work.WorkDir, 0777)
+				}
+
 				// Receive a work request.
 				fmt.Printf("worker%d: Received work request, delaying for %f seconds\n", w.ID, work.Delay.Seconds())
 

@@ -11,6 +11,15 @@ import (
 	"github.com/justinas/alice"
 )
 
+// Config does stuff
+type Config struct {
+	Workers         int
+	ServeAddress    string
+	WorkSpaceDir    string
+	StartingHistory int
+	CurrentHistory  int
+}
+
 var (
 	//NWorkers describes number of workers to start
 	NWorkers = flag.Int("n", 4, "The number of workers to start")
@@ -26,6 +35,12 @@ func main() {
 	// Parse the command-line flags.
 	flag.Parse()
 
+	c := Config{Workers: *NWorkers, ServeAddress: *HTTPAddr, WorkSpaceDir: *WorkspaceDir, StartingHistory: 0, CurrentHistory: 0}
+
+	c.StartingHistory = FindHistory(c.WorkSpaceDir)
+
+	c.CurrentHistory = c.StartingHistory
+
 	if _, err := os.Stat(*WorkspaceDir); os.IsNotExist(err) {
 		fmt.Println("Workspace directory does not exist. Creating...")
 		os.Mkdir(*WorkspaceDir, 0777)
@@ -39,7 +54,9 @@ func main() {
 
 	router := httprouter.New()
 
-	router.Handler("POST", "/work", middleware.ThenFunc(Collector))
+	router.Handler("POST", "/work", middleware.ThenFunc(c.Collector))
+
+	router.Handler("POST", "/stop", middleware.ThenFunc(c.StopWorker))
 
 	fmt.Println("HTTP server listening on ", *HTTPAddr)
 
